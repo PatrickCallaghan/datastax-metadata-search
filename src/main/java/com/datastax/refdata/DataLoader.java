@@ -119,6 +119,7 @@ public class DataLoader {
 		reader.close();
 	}
 
+	@SuppressWarnings("unused")
 	private void processDividendsFile(File file) throws IOException, InterruptedException {
 
 		CSVReader reader = new CSVReader(new FileReader(file.getAbsolutePath()), CSVReader.DEFAULT_SEPARATOR,

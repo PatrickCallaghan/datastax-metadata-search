@@ -13,9 +13,6 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.datastax.driver.core.BoundStatement;
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.ConsistencyLevel;
@@ -31,14 +28,11 @@ import com.datastax.refdata.model.HistoricData;
 
 public class ReferenceDao {
 	
-	private static Logger logger = LoggerFactory.getLogger(ReferenceDao.class);
-
 	private AtomicLong TOTAL_POINTS = new AtomicLong(0);
 	private Session session;
 	private static String keyspaceName = "datastax";
 	private static String tableNameHistoric = keyspaceName + ".historic_data";
 	private static String tableNameDividends = keyspaceName + ".dividends";
-	private static String tableNameMetaData = keyspaceName + ".exchange_metadata";
 
 	private static final String INSERT_INTO_HISTORIC = "Insert into " + tableNameHistoric
 			+ " (key,date,value) values (?,?,?);";
@@ -55,8 +49,8 @@ public class ReferenceDao {
 	private PreparedStatement insertStmtDividend;
 	private PreparedStatement insertStmtMetaData;
 	private PreparedStatement selectStmtByKey;
-	private Set<String> hierarchy = new HashSet(Arrays.asList("Exchange", "Ticker", "variant"));
-	private Set<String> variant = new HashSet(Arrays.asList("low","high","open", "close", "volume","adjclose"));
+	private Set<String> hierarchy = new HashSet<String>(Arrays.asList("Exchange", "Ticker", "variant"));
+	private Set<String> variant = new HashSet<String>(Arrays.asList("low","high","open", "close", "volume","adjclose"));
 
 	private AtomicInteger requestCount = new AtomicInteger(0);
 
@@ -131,13 +125,15 @@ public class ReferenceDao {
 		Set<String> alias = new HashSet<String>();
 		alias.add(mostRecent.getKey());		
 		
+		String exchange = mostRecent.getKey().substring(0, mostRecent.getKey().indexOf("-"));
+		String ticker = mostRecent.getKey().substring(mostRecent.getKey().indexOf("-") + 1, mostRecent.getKey().length());
 		Map<String, String> ratings = new HashMap<String,String>();
 		ratings.put("ratings_Moody", "Aaa");
 		ratings.put("ratings_Fitch", "AAA");
 		
-		Map<String, String> attributes = new HashMap<String,String>();
-		attributes.put("attributes_Exchange", mostRecent.getKey().substring(0, mostRecent.getKey().indexOf("-")));
-		attributes.put("attributes_Ticker", mostRecent.getKey().substring(mostRecent.getKey().indexOf("-") + 1, mostRecent.getKey().length()));
+		Map<String, String> attributes = new HashMap<String,String>();	
+		attributes.put("attributes_Exchange", exchange);
+		attributes.put("attributes_Ticker", ticker);
 		
 
 		//Insert most recent date.
@@ -154,7 +150,7 @@ public class ReferenceDao {
 			boundMetaDataStmt.setMap("ratings_",ratings);
 			boundMetaDataStmt.setMap("attributes_",attributes);
 			boundMetaDataStmt.setString("default_rating", "A");
-			boundMetaDataStmt.setString("ts_id", uuid.toString());
+			boundMetaDataStmt.setString("ts_id", exchange+"-"+ticker);
 			
 			results.add(session.executeAsync(boundMetaDataStmt));
 		}
