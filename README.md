@@ -22,9 +22,11 @@ In cqlsh we can now search for our data by any field, for example we will search
     
 From the results of this query, we can then generate the time series id
 
+```
  hierarchy                         | attributes_                                                    | variant
 -----------------------------------+----------------------------------------------------------------+--------------------------------------------------------
  {'Exchange', 'Ticker', 'variant'} | {'attributes_Exchange': 'NASDAQ', 'attributes_Ticker': 'APKT'} | {'adjclose', 'close', 'high', 'low', 'open', 'volume'}
+```
 
 From the hierarchy, we know that to make the key, we need the Exchange(NASDAQ) and the Ticker (APKT) and a variant (eg close). So the time series key will be 'NASDAQ-APKT-close'
 
