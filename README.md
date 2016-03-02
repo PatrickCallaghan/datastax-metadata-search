@@ -18,7 +18,7 @@ To create some metedata and time series data, run the following
 
 To create the solr core, run 
 
-    bin/dsetool create_core datastax.metadata generateResources=true reindex=true
+    dsetool create_core datastax.metadata generateResources=true reindex=true
 
 This will create an index on all the columns by default. 
 
