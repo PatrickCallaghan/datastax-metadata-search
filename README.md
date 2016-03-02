@@ -32,6 +32,10 @@ From the hierarchy, we know that to make the key, we need the Exchange(NASDAQ) a
 
     select * from historic_data where key = 'NASDAQ-APKT-close' limit 50;
     
+Alternatively, when the metadata is created for the first time, we can create a unique key that will always be the key (along with a variant) for the time series data. Eg. 
+
+    select ts_id from metadata where solr_query = '{"q":"attributes_Exchange:NASDAQ", "fq":"attributes_Ticker:APKT"}';
+    
 To remove the tables and the schema, run the following.
 
     mvn clean compile exec:java -Dexec.mainClass="com.datastax.demo.SchemaTeardown"
