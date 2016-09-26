@@ -80,37 +80,37 @@ public class ReferenceDao {
 
 			Date insertDate = historicData.getDate();
 			boundStmt.setString("key", historicData.getKey()+ "-open");
-			boundStmt.setDate("date", insertDate);
+			boundStmt.setTimestamp("date", insertDate);
 			boundStmt.setDouble("value", historicData.getOpen());
 			results.add(session.executeAsync(boundStmt));
 			
 			boundStmt = new BoundStatement(this.insertStmtHistoric);
 			boundStmt.setString("key", historicData.getKey()+ "-low");
-			boundStmt.setDate("date", insertDate);
+			boundStmt.setTimestamp("date", insertDate);
 			boundStmt.setDouble("value", historicData.getLow());
 			results.add(session.executeAsync(boundStmt));
 			
 			boundStmt = new BoundStatement(this.insertStmtHistoric);
 			boundStmt.setString("key", historicData.getKey()+ "-high");
-			boundStmt.setDate("date", insertDate);
+			boundStmt.setTimestamp("date", insertDate);
 			boundStmt.setDouble("value", historicData.getHigh());
 			results.add(session.executeAsync(boundStmt));
 
 			boundStmt = new BoundStatement(this.insertStmtHistoric);
 			boundStmt.setString("key", historicData.getKey()+ "-close");
-			boundStmt.setDate("date", insertDate);
+			boundStmt.setTimestamp("date", insertDate);
 			boundStmt.setDouble("value", historicData.getClose());
 			results.add(session.executeAsync(boundStmt));
 
 			boundStmt = new BoundStatement(this.insertStmtHistoric);
 			boundStmt.setString("key", historicData.getKey()+ "-volume");
-			boundStmt.setDate("date", insertDate);
+			boundStmt.setTimestamp("date", insertDate);
 			boundStmt.setDouble("value", historicData.getVolume());
 			results.add(session.executeAsync(boundStmt));
 
 			boundStmt = new BoundStatement(this.insertStmtHistoric);
 			boundStmt.setString("key", historicData.getKey()+ "-adjclose");
-			boundStmt.setDate("date", insertDate);
+			boundStmt.setTimestamp("date", insertDate);
 			boundStmt.setDouble("value", historicData.getAdjClose());					
 			results.add(session.executeAsync(boundStmt));
 			
@@ -143,7 +143,7 @@ public class ReferenceDao {
 			
 			BoundStatement boundMetaDataStmt = new BoundStatement(this.insertStmtMetaData);
 			boundMetaDataStmt.setUUID("id", uuid);
-			boundMetaDataStmt.setDate("updated_date", new Date());
+			boundMetaDataStmt.setTimestamp("updated_date", new Date());
 			boundMetaDataStmt.setSet("hierarchy", this.hierarchy);
 			boundMetaDataStmt.setSet("alias", alias);
 			boundMetaDataStmt.setSet("variant", variant);			
@@ -169,7 +169,7 @@ public class ReferenceDao {
 		for (Dividend dividend: list) {
 
 			boundStmt.setString("key", dividend.getKey());
-			boundStmt.setDate("date", dividend.getDate());
+			boundStmt.setTimestamp("date", dividend.getDate());
 			boundStmt.setDouble("dividend", dividend.getDividend());
 
 			results.add(session.executeAsync(boundStmt));
