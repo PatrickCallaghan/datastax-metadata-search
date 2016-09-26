@@ -34,7 +34,13 @@ public class RunQueries {
 		logger.info("Symbols to fetch : " + exchangeSymbols.size());
 		int fetchSize = 50000;	
 		
+
 		Timer timer = new Timer();
+		logger.info("Total count :" + dao.getCount());
+		timer.end();
+		logger.info("Count * took : " + timer.getTimeTakenMillis() + " ms for fetchsize : " + fetchSize);
+		
+		timer = new Timer();
 		dao.selectAllHistoricData(fetchSize);
 		timer.end();
 		

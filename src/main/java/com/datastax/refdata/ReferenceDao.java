@@ -1,5 +1,6 @@
 package com.datastax.refdata;
 
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
@@ -12,6 +13,9 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.datastax.driver.core.BoundStatement;
 import com.datastax.driver.core.Cluster;
@@ -27,7 +31,8 @@ import com.datastax.refdata.model.Dividend;
 import com.datastax.refdata.model.HistoricData;
 
 public class ReferenceDao {
-	
+
+	private static Logger logger = LoggerFactory.getLogger(ReferenceDao.class);
 	private AtomicLong TOTAL_POINTS = new AtomicLong(0);
 	private Session session;
 	private static String keyspaceName = "datastax";
@@ -40,17 +45,19 @@ public class ReferenceDao {
 			+ " (key,date,dividend) values (?,?,?);";
 	private static final String INSERT_INTO_METADATA = "insert into datastax.metadata (id, updated_date, hierarchy, alias, "
 			+ "attributes_, variant, ratings_, default_rating, ts_id) values (?,?,?,?,?,?,?,?,?);";
-	
-	
-	private static final String SELECT_ALL = "select * from " + tableNameHistoric + " where date > '2009-05-01' and date < '2009-06-01' allow filtering";
-	private static final String SELECT_ALL_BY_KEY = "select * from " + tableNameHistoric + " where key=? and date > '2009-05-01' and date < '2009-06-01'";
+
+	private static final String SELECT_ALL = "select * from " + tableNameHistoric
+			+ " where date > '2009-05-01' and date < '2009-06-01' allow filtering";
+	private static final String SELECT_ALL_BY_KEY = "select * from " + tableNameHistoric
+			+ " where key=? and date > '2009-05-01' and date < '2009-06-01'";
 
 	private PreparedStatement insertStmtHistoric;
 	private PreparedStatement insertStmtDividend;
 	private PreparedStatement insertStmtMetaData;
 	private PreparedStatement selectStmtByKey;
 	private Set<String> hierarchy = new HashSet<String>(Arrays.asList("Exchange", "Ticker", "variant"));
-	private Set<String> variant = new HashSet<String>(Arrays.asList("low","high","open", "close", "volume","adjclose"));
+	private Set<String> variant = new HashSet<String>(Arrays.asList("low", "high", "open", "close", "volume",
+			"adjclose"));
 
 	private AtomicInteger requestCount = new AtomicInteger(0);
 
@@ -63,110 +70,110 @@ public class ReferenceDao {
 		this.insertStmtDividend = session.prepare(INSERT_INTO_DIVIDENDS);
 		this.insertStmtMetaData = session.prepare(INSERT_INTO_METADATA);
 		this.selectStmtByKey = session.prepare(SELECT_ALL_BY_KEY);
-		
+
 		this.insertStmtHistoric.setConsistencyLevel(ConsistencyLevel.ONE);
 		this.insertStmtDividend.setConsistencyLevel(ConsistencyLevel.ONE);
 		this.insertStmtMetaData.setConsistencyLevel(ConsistencyLevel.ONE);
 	}
 
-	public void insertHistoricData(List<HistoricData> list) throws Exception{
+	public void insertHistoricData(List<HistoricData> list) throws Exception {
 		BoundStatement boundStmt = new BoundStatement(this.insertStmtHistoric);
 		List<ResultSetFuture> results = new ArrayList<ResultSetFuture>();
 
-		Date mostRecentDate = new Date(0);		
+		Date mostRecentDate = new Date(0);
 		HistoricData mostRecent = null;
-		
+
 		for (HistoricData historicData : list) {
 
 			Date insertDate = historicData.getDate();
-			boundStmt.setString("key", historicData.getKey()+ "-open");
+			boundStmt.setString("key", historicData.getKey() + "-open");
 			boundStmt.setTimestamp("date", insertDate);
 			boundStmt.setDouble("value", historicData.getOpen());
 			results.add(session.executeAsync(boundStmt));
-			
+
 			boundStmt = new BoundStatement(this.insertStmtHistoric);
-			boundStmt.setString("key", historicData.getKey()+ "-low");
+			boundStmt.setString("key", historicData.getKey() + "-low");
 			boundStmt.setTimestamp("date", insertDate);
 			boundStmt.setDouble("value", historicData.getLow());
 			results.add(session.executeAsync(boundStmt));
-			
+
 			boundStmt = new BoundStatement(this.insertStmtHistoric);
-			boundStmt.setString("key", historicData.getKey()+ "-high");
+			boundStmt.setString("key", historicData.getKey() + "-high");
 			boundStmt.setTimestamp("date", insertDate);
 			boundStmt.setDouble("value", historicData.getHigh());
 			results.add(session.executeAsync(boundStmt));
 
 			boundStmt = new BoundStatement(this.insertStmtHistoric);
-			boundStmt.setString("key", historicData.getKey()+ "-close");
+			boundStmt.setString("key", historicData.getKey() + "-close");
 			boundStmt.setTimestamp("date", insertDate);
 			boundStmt.setDouble("value", historicData.getClose());
 			results.add(session.executeAsync(boundStmt));
 
 			boundStmt = new BoundStatement(this.insertStmtHistoric);
-			boundStmt.setString("key", historicData.getKey()+ "-volume");
+			boundStmt.setString("key", historicData.getKey() + "-volume");
 			boundStmt.setTimestamp("date", insertDate);
 			boundStmt.setDouble("value", historicData.getVolume());
 			results.add(session.executeAsync(boundStmt));
 
 			boundStmt = new BoundStatement(this.insertStmtHistoric);
-			boundStmt.setString("key", historicData.getKey()+ "-adjclose");
+			boundStmt.setString("key", historicData.getKey() + "-adjclose");
 			boundStmt.setTimestamp("date", insertDate);
-			boundStmt.setDouble("value", historicData.getAdjClose());					
+			boundStmt.setDouble("value", historicData.getAdjClose());
 			results.add(session.executeAsync(boundStmt));
-			
-			if (historicData.getDate().after(mostRecentDate)){				
+
+			if (historicData.getDate().after(mostRecentDate)) {
 				mostRecentDate = insertDate;
 				mostRecent = historicData;
 			}
-						
-			TOTAL_POINTS.incrementAndGet();			
+
+			TOTAL_POINTS.incrementAndGet();
 		}
-		
+
 		Set<String> alias = new HashSet<String>();
-		alias.add(mostRecent.getKey());		
-		
+		alias.add(mostRecent.getKey());
+
 		String exchange = mostRecent.getKey().substring(0, mostRecent.getKey().indexOf("-"));
-		String ticker = mostRecent.getKey().substring(mostRecent.getKey().indexOf("-") + 1, mostRecent.getKey().length());
-		Map<String, String> ratings = new HashMap<String,String>();
+		String ticker = mostRecent.getKey().substring(mostRecent.getKey().indexOf("-") + 1,
+				mostRecent.getKey().length());
+		Map<String, String> ratings = new HashMap<String, String>();
 		ratings.put("ratings_Moody", "Aaa");
 		ratings.put("ratings_Fitch", "AAA");
-		
-		Map<String, String> attributes = new HashMap<String,String>();	
+
+		Map<String, String> attributes = new HashMap<String, String>();
 		attributes.put("attributes_Exchange", exchange);
 		attributes.put("attributes_Ticker", ticker);
-		
 
-		//Insert most recent date.
-		if (mostRecent != null){
-			
+		// Insert most recent date.
+		if (mostRecent != null) {
+
 			UUID uuid = UUID.randomUUID();
-			
+
 			BoundStatement boundMetaDataStmt = new BoundStatement(this.insertStmtMetaData);
 			boundMetaDataStmt.setUUID("id", uuid);
 			boundMetaDataStmt.setTimestamp("updated_date", new Date());
 			boundMetaDataStmt.setSet("hierarchy", this.hierarchy);
 			boundMetaDataStmt.setSet("alias", alias);
-			boundMetaDataStmt.setSet("variant", variant);			
-			boundMetaDataStmt.setMap("ratings_",ratings);
-			boundMetaDataStmt.setMap("attributes_",attributes);
+			boundMetaDataStmt.setSet("variant", variant);
+			boundMetaDataStmt.setMap("ratings_", ratings);
+			boundMetaDataStmt.setMap("attributes_", attributes);
 			boundMetaDataStmt.setString("default_rating", "A");
-			boundMetaDataStmt.setString("ts_id", exchange+"-"+ticker);
-			
+			boundMetaDataStmt.setString("ts_id", exchange + "-" + ticker);
+
 			results.add(session.executeAsync(boundMetaDataStmt));
 		}
-		
-		//Wait till we have everything back.
-		for (ResultSetFuture result : results) {				
+
+		// Wait till we have everything back.
+		for (ResultSetFuture result : results) {
 			result.getUninterruptibly();
 		}
 		return;
 	}
-	
+
 	public void insertDividend(List<Dividend> list) {
 		BoundStatement boundStmt = new BoundStatement(this.insertStmtDividend);
 		List<ResultSetFuture> results = new ArrayList<ResultSetFuture>();
 
-		for (Dividend dividend: list) {
+		for (Dividend dividend : list) {
 
 			boundStmt.setString("key", dividend.getKey());
 			boundStmt.setTimestamp("date", dividend.getDate());
@@ -175,7 +182,7 @@ public class ReferenceDao {
 			results.add(session.executeAsync(boundStmt));
 		}
 
-		//Wait till we have everything back.
+		// Wait till we have everything back.
 		boolean wait = true;
 		while (wait) {
 			wait = false;
@@ -188,36 +195,54 @@ public class ReferenceDao {
 		}
 		return;
 	}
-	
-	public void selectAllHistoricData(int fetchSize){
+
+	public void selectAllHistoricData(int fetchSize) {
 		Statement stmt = new SimpleStatement(SELECT_ALL);
 		stmt.setFetchSize(fetchSize);
 		ResultSet rs = session.execute(stmt);
-		
+
 		Iterator<Row> iterator = rs.iterator();
-		
-		while (iterator.hasNext()){
-			iterator.next().getDouble("close");
-		}		
+
+		while (iterator.hasNext()) {
+			iterator.next();
+		}
 	}
-	
-	public long getTotalPoints(){
+
+	public long getTotalPoints() {
 		return TOTAL_POINTS.get();
 	}
-	
-	public int getRequestCount(){
+
+	public int getRequestCount() {
 		return this.requestCount.get();
 	}
 
 	public void selectAllHistoricData(String key) {
-		requestCount.incrementAndGet(); 
-		
+		requestCount.incrementAndGet();
+
 		BoundStatement bound = new BoundStatement(selectStmtByKey);
-		
-		ResultSetFuture results = session.executeAsync(bound.bind(key)); 
-		
-		for (Row row : results.getUninterruptibly()) {			
-			row.getString("symbol");			
+
+		ResultSetFuture results = session.executeAsync(bound.bind(key));
+
+		for (Row row : results.getUninterruptibly()) {
+			row.getString("symbol");
 		}
+	}
+
+	public long getCount() {
+
+		Statement statement = new SimpleStatement(
+				"select hierarchy from datastax.metadata where solr_query = '{\"q\":\"*:*\"}' limit 1");
+		ResultSet rows = session.execute(statement);
+
+		try {
+			Map<String, ByteBuffer> serverPayload = rows.getExecutionInfo().getIncomingPayload();
+
+			ByteBuffer byteBuffer = serverPayload.get("DSESearch.numFound");
+			return byteBuffer.getLong();
+		} catch (Exception e) {
+			logger.warn("Could not get count for DSE Search numFound");
+		}
+		return -1;
+
 	}
 }
